@@ -1,5 +1,17 @@
 // src/components/SettingsModal.jsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+
+// Font families for the editor
+const FONT_FAMILIES = {
+  monospace:
+    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+  courier: "'Courier New', Courier, monospace",
+  consolas: "Consolas, 'Courier New', monospace",
+  ubuntu: "'Ubuntu Mono', monospace",
+  roboto: "'Roboto Mono', monospace",
+  serif: "serif",
+  sans: "sans-serif",
+};
 
 export default function SettingsModal({
   isOpen,
@@ -8,6 +20,8 @@ export default function SettingsModal({
   setSettings,
   onClose,
 }) {
+  const [openSection, setOpenSection] = useState("editor");
+
   // Load default settings when format changes
   useEffect(() => {
     if (!selectedFormat) return;
@@ -36,8 +50,10 @@ export default function SettingsModal({
 
     setSettings((prev) => ({
       ...defaults[selectedFormat.toLowerCase()],
-      ...prev, // keep universal settings
+      ...prev,
     }));
+
+    setOpenSection(selectedFormat); 
   }, [selectedFormat, setSettings]);
 
   if (!isOpen) return null;
@@ -48,33 +64,44 @@ export default function SettingsModal({
 
   const formatLabel = (selectedFormat || "").toUpperCase();
   const inputClass =
-    "w-full p-2 rounded border dark:bg-gray-800 dark:text-white dark:border-gray-700";
+    "w-full p-2 rounded border dark:bg-gray-800 dark:text-white dark:border-gray-700 text-sm";
+
+  // Collapsible section component
+  const Section = ({ id, title, children }) => (
+    <div className="border rounded-lg dark:border-gray-700">
+      <button
+        onClick={() => setOpenSection(openSection === id ? null : id)}
+        className="w-full flex justify-between items-center px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-medium rounded-t-lg"
+      >
+        {title}
+        <span>{openSection === id ? "▾" : "▸"}</span>
+      </button>
+      {openSection === id && (
+        <div className="p-3 bg-white dark:bg-gray-900 space-y-3">{children}</div>
+      )}
+    </div>
+  );
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 w-[650px] max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-5 w-[500px] max-h-[85vh] overflow-y-auto relative space-y-4">
         {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            Settings - {formatLabel}
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+            Settings – {formatLabel}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-800 dark:hover:text-white font-bold text-lg"
+            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 font-bold text-lg"
             aria-label="Close Settings"
           >
             ✕
           </button>
         </div>
 
-        {/* Universal Settings */}
-        <div className="mb-6 border-b border-gray-300 dark:border-gray-700 pb-4">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-            Editor Settings
-          </h3>
-
-          {/* Line Wrapping */}
-          <label className="flex items-center gap-2 text-gray-800 dark:text-gray-200 mb-2">
+        {/* Sections */}
+        <Section id="editor" title="Editor Settings">
+          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <input
               type="checkbox"
               checked={settings?.lineWrap || false}
@@ -83,9 +110,7 @@ export default function SettingsModal({
             />
             Enable Line Wrapping
           </label>
-
-          {/* Line Numbers */}
-          <label className="flex items-center gap-2 text-gray-800 dark:text-gray-200 mb-2">
+          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <input
               type="checkbox"
               checked={settings?.lineNumbers || false}
@@ -94,164 +119,163 @@ export default function SettingsModal({
             />
             Show Line Numbers
           </label>
-
-          {/* Font Size */}
-          <div className="flex flex-col gap-2 mb-2">
-            <label className="text-gray-800 dark:text-gray-200">Font Size</label>
+          <div>
+            <label className="text-sm text-gray-700 dark:text-gray-300">
+              Font Size (px)
+            </label>
             <input
-              type="range"
+              type="number"
               min="10"
               max="24"
               step="1"
               value={settings?.fontSize || 14}
-              onChange={(e) => updateSetting("fontSize", parseInt(e.target.value))}
-              className="w-full"
-            />
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {settings?.fontSize || 14}px
-            </span>
-          </div>
-
-          {/* Font Theme */}
-          <div className="flex flex-col gap-2">
-            <label className="text-gray-800 dark:text-gray-200">Font Theme</label>
-            <select
-              value={settings?.fontTheme || "monospace"}
-              onChange={(e) => updateSetting("fontTheme", e.target.value)}
+              onChange={(e) =>
+                updateSetting("fontSize", parseInt(e.target.value) || 14)
+              }
               className={inputClass}
-            >
-              <option value="monospace">Monospace</option>
-              <option value="serif">Serif</option>
-              <option value="sans">Sans</option>
-            </select>
+            />
           </div>
-        </div>
+          <div>
+            <label className="text-sm text-gray-700 dark:text-gray-300">
+  Font Theme
+</label>
+<select
+  value={settings?.fontTheme || "monospace"}
+  onChange={(e) => updateSetting("fontTheme", e.target.value)}
+  className={inputClass}
+>
+  {Object.keys(FONT_FAMILIES).map((fontKey) => (
+    <option key={fontKey} value={fontKey}>
+      {fontKey.charAt(0).toUpperCase() + fontKey.slice(1)}
+    </option>
+  ))}
+</select>
 
-        {/* Format-Specific Settings */}
-        <div className="space-y-4">
-          {/* CSV */}
-          {selectedFormat === "csv" && (
-            <>
-              <div className="flex flex-col gap-2">
-                <label className="text-gray-800 dark:text-gray-200">
-                  Delimiter
-                </label>
-                <input
-                  type="text"
-                  value={settings?.delimiter || ","}
-                  onChange={(e) => updateSetting("delimiter", e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-gray-800 dark:text-gray-200">
-                  End of Line
-                </label>
-                <select
-                  value={settings?.eol || "unix"}
-                  onChange={(e) => updateSetting("eol", e.target.value)}
-                  className={inputClass}
+          </div>
+        </Section>
+
+        {/* CSV */}
+        {selectedFormat === "csv" && (
+          <Section id="csv" title="CSV Settings">
+            <div>
+              <label className="text-sm text-gray-700 dark:text-gray-300">
+                Delimiter
+              </label>
+              <input
+                type="text"
+                value={settings?.delimiter || ","}
+                onChange={(e) => updateSetting("delimiter", e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-700 dark:text-gray-300">
+                End of Line
+              </label>
+              <select
+                value={settings?.eol || "unix"}
+                onChange={(e) => updateSetting("eol", e.target.value)}
+                className={inputClass}
+              >
+                <option value="unix">Unix (\n)</option>
+                <option value="windows">Windows (\r\n)</option>
+                <option value="mac">Mac (\r)</option>
+              </select>
+            </div>
+          </Section>
+        )}
+
+        {/* JSON */}
+        {selectedFormat === "json" && (
+          <Section id="json" title="JSON Settings">
+            <div>
+              <label className="text-sm text-gray-700 dark:text-gray-300">
+                Data Structure
+              </label>
+              <select
+                value={settings?.jsonStructure || "simple"}
+                onChange={(e) => updateSetting("jsonStructure", e.target.value)}
+                className={inputClass}
+              >
+                <option value="simple">Simple</option>
+                <option value="complex">Complex</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm text-gray-700 dark:text-gray-300">
+                Indentation
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="8"
+                value={settings?.jsonIndent || 2}
+                onChange={(e) =>
+                  updateSetting("jsonIndent", parseInt(e.target.value) || 2)
+                }
+                className={inputClass}
+              />
+            </div>
+          </Section>
+        )}
+
+        {/* SQL */}
+        {selectedFormat === "sql" && (
+          <Section id="sql" title="SQL Settings">
+            <div>
+              <label className="text-sm text-gray-700 dark:text-gray-300">
+                Database Type
+              </label>
+              <select
+                value={settings?.dbType || "mysql"}
+                onChange={(e) => updateSetting("dbType", e.target.value)}
+                className={inputClass}
+              >
+                <option value="mysql">MySQL</option>
+                <option value="postgres">PostgreSQL</option>
+                <option value="sqlite">SQLite</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm text-gray-700 dark:text-gray-300">
+                Table Name
+              </label>
+              <input
+                type="text"
+                value={settings?.tableName || "my_table"}
+                onChange={(e) => updateSetting("tableName", e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-1">
+              {[
+                { key: "dropTable", label: "Include DROP TABLE" },
+                { key: "includeCreate", label: "Include CREATE TABLE" },
+                { key: "encloseNames", label: "Enclose column names in quotes" },
+                { key: "addPrimaryKey", label: "Add Primary Key" },
+              ].map(({ key, label }) => (
+                <label
+                  key={key}
+                  className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"
                 >
-                  <option value="unix">Unix (\n)</option>
-                  <option value="windows">Windows (\r\n)</option>
-                  <option value="mac">Mac (\r)</option>
-                </select>
-              </div>
-            </>
-          )}
-
-          {/* JSON */}
-          {selectedFormat === "json" && (
-            <>
-              <div className="flex flex-col gap-2">
-                <label className="text-gray-800 dark:text-gray-200">
-                  Data Structure
+                  <input
+                    type="checkbox"
+                    checked={settings?.[key] || false}
+                    onChange={(e) => updateSetting(key, e.target.checked)}
+                    className="accent-gray-500"
+                  />
+                  {label}
                 </label>
-                <select
-                  value={settings?.jsonStructure || "simple"}
-                  onChange={(e) => updateSetting("jsonStructure", e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="simple">Simple</option>
-                  <option value="complex">Complex</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-gray-800 dark:text-gray-200">
-                  Indentation
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="8"
-                  value={settings?.jsonIndent || 2}
-                  onChange={(e) => updateSetting("jsonIndent", e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-            </>
-          )}
-
-          {/* SQL */}
-          {selectedFormat === "sql" && (
-            <>
-              <div className="flex flex-col gap-2">
-                <label className="text-gray-800 dark:text-gray-200">
-                  Database Type
-                </label>
-                <select
-                  value={settings?.dbType || "mysql"}
-                  onChange={(e) => updateSetting("dbType", e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="mysql">MySQL</option>
-                  <option value="postgres">PostgreSQL</option>
-                  <option value="sqlite">SQLite</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-gray-800 dark:text-gray-200">
-                  Table Name
-                </label>
-                <input
-                  type="text"
-                  value={settings?.tableName || "my_table"}
-                  onChange={(e) => updateSetting("tableName", e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                {[
-                  { key: "dropTable", label: "Include DROP TABLE" },
-                  { key: "includeCreate", label: "Include CREATE TABLE" },
-                  { key: "encloseNames", label: "Enclose column names in quotes" },
-                  { key: "addPrimaryKey", label: "Add Primary Key" },
-                ].map(({ key, label }) => (
-                  <label
-                    key={key}
-                    className="flex items-center gap-2 text-gray-800 dark:text-gray-200"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={settings?.[key] || false}
-                      onChange={(e) => updateSetting(key, e.target.checked)}
-                      className="accent-gray-500"
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Add your other format-specific settings here (excel, html, yaml, etc.) */}
-        </div>
+              ))}
+            </div>
+          </Section>
+        )}
 
         {/* Footer */}
-        <div className="mt-6 text-right">
+        <div className="flex justify-end pt-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600"
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 dark:bg-gray-700 dark:hover:bg-gray-600 text-sm"
           >
             Save & Close
           </button>

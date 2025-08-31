@@ -1,8 +1,8 @@
 // src/components/DataTable.jsx
 import React, { useState } from "react";
-import { FiDownload, FiUpload, FiPlus } from "react-icons/fi";
+import { FiDownload, FiUpload } from "react-icons/fi";
 import jsyaml from "js-yaml";
-import { importFile } from "../utils/importer"; // ✅ fixed import
+import { importFile } from "../utils/importer";
 
 const FONT_FAMILIES = {
   monospace:
@@ -31,26 +31,20 @@ const FORMATS = [
 ];
 
 export default function DataTable({ darkMode = false }) {
-  const [userPlan] = useState("free"); // "free" | "paid" | "sub"
-
-  // ✅ Define only one link to avoid ESLint errors
-  const paypalLink = "https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=youremail@example.com&item_name=Unlimited+Import&amount=10.00&currency_code=USD";
-
+  const [userPlan] = useState("free"); // free/paid/sub
   const [columns, setColumns] = useState([
     { name: "Name", type: "string" },
     { name: "Email", type: "string" },
     { name: "Age", type: "number" },
   ]);
-  const [data, setData] = useState([
-    { Name: "Alice", Email: "alice@example.com", Age: 25 },
-    { Name: "Bob", Email: "bob@example.com", Age: 30 },
-  ]);
+  const [data, setData] = useState([]);
+  const [templateData, setTemplateData] = useState([]); // for template table
   const [rowInput, setRowInput] = useState("");
-  const [warning, setWarning] = useState(""); // ⚠️ Warning for plan limits
+  const [warning, setWarning] = useState("");
   const [previewSettings, setPreviewSettings] = useState({
-    format: "formatFromHome",
+    format: "csv",
     fontSize: 14,
-    fontTheme: "font_families",
+    fontTheme: "monospace",
     showLineNumbers: false,
     wrapLines: false,
   });
@@ -59,15 +53,20 @@ export default function DataTable({ darkMode = false }) {
     setPreviewSettings((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleAddRow = () => {
+  // --- Actions ---
+  const handleGenerateRows = () => {
     const count = parseInt(rowInput, 10);
     if (!count || count <= 0) return;
 
+    const maxRows = userPlan === "free" ? 500 : 1000;
+    if (data.length + count > maxRows) {
+      setWarning(`⚠️ ${userPlan} plan allows max ${maxRows} rows.`);
+      return;
+    } else setWarning("");
+
     const newRows = Array.from({ length: count }, () => {
       const emptyRow = {};
-      columns.forEach((col) => {
-        emptyRow[col.name] = "";
-      });
+      columns.forEach((col) => (emptyRow[col.name] = ""));
       return emptyRow;
     });
 
@@ -75,7 +74,6 @@ export default function DataTable({ darkMode = false }) {
     setRowInput("");
   };
 
-  // ✅ Updated Import logic
   const handleImportClick = () => {
     const input = document.createElement("input");
     input.type = "file";
@@ -89,34 +87,11 @@ export default function DataTable({ darkMode = false }) {
         setData(imported);
         setColumns(columns);
 
-        // Show warning if limited by plan
-        if (userPlan === "free" && imported.length >= 3) {
-          setWarning(
-            <>
-              ⚠️ Free plan only imports up to 3 rows. Upgrade to unlock more.
-              <button
-                onClick={() => window.open(paypalLink, "_blank")}
-                className="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
-              >
-                Upgrade Now
-              </button>
-            </>
-          );
-        } else if (userPlan === "paid" && imported.length >= 10) {
-          setWarning(
-            <>
-              ⚠️ Paid plan only imports up to 10 rows. Subscribe for unlimited.
-              <button
-                onClick={() => window.open(paypalLink, "_blank")}
-                className="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
-              >
-                Upgrade Now
-              </button>
-            </>
-          );
-        } else {
-          setWarning("");
-        }
+        if (userPlan === "free" && imported.length > 3)
+          setWarning("⚠️ Free plan only imports up to 3 rows. Upgrade to unlock more.");
+        else if (userPlan === "paid" && imported.length > 10)
+          setWarning("⚠️ Paid plan only imports up to 10 rows. Subscribe for unlimited.");
+        else setWarning("");
       });
     };
 
@@ -124,7 +99,9 @@ export default function DataTable({ darkMode = false }) {
   };
 
   const handleDownload = () => {
-    const blob = new Blob([formatData(data, previewSettings.format)], {
+    // Combine main data + templateData
+    const combinedData = [...templateData, ...data];
+    const blob = new Blob([formatData(combinedData, previewSettings.format)], {
       type: "text/plain;charset=utf-8",
     });
     const link = document.createElement("a");
@@ -218,33 +195,53 @@ export default function DataTable({ darkMode = false }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Data Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 border border-gray-200 dark:border-gray-700 relative">
-        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+      {/* --- BUTTONS TABLE --- */}
+      <div className="bg-gray-200 dark:bg-gray-700 rounded-2xl shadow p-4 border border-gray-300 dark:border-gray-600 flex flex-wrap gap-2">
+        <input
+          type="number"
+          min="1"
+          value={rowInput}
+          onChange={(e) => setRowInput(e.target.value)}
+          placeholder="Rows"
+          className="w-24 px-2 py-1 rounded border dark:bg-gray-800 dark:text-gray-100"
+        />
+        <button
+          onClick={handleGenerateRows}
+          className="px-3 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700"
+        >
+          Generate Rows
+        </button>
+        <button
+          onClick={handleImportClick}
+          className="px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1"
+        >
+          <FiUpload /> Import
+        </button>
+        <button
+          onClick={handleDownload}
+          className="px-3 py-1 rounded-lg bg-purple-600 text-white hover:bg-purple-700 flex items-center gap-1"
+        >
+          <FiDownload /> Download
+        </button>
+      </div>
+
+      {/* --- TABLE 1: Data Table --- */}
+      <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl shadow p-4 border border-gray-300 dark:border-gray-700">
+        <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">
           Data Table
         </h2>
-
-        {/* ⚠️ Warning if plan-limited */}
-{warning && (
-  <div className="mt-2 p-2 bg-yellow-100 text-yellow-800 rounded-md text-sm flex items-center justify-between">
-    <span>{warning}</span>
-    <button
-      onClick={() => window.open(paypalLink, "_blank")}
-      className="ml-4 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
-    >
-      Upgrade Now
-    </button>
-  </div>
-)}
-
-
-        <table className="w-full text-sm mt-2 border">
-          <thead>
+        {warning && (
+          <div className="p-2 bg-yellow-100 dark:bg-yellow-700 text-yellow-800 dark:text-yellow-200 rounded-md text-sm mb-2">
+            {warning}
+          </div>
+        )}
+        <table className="w-full border border-gray-300 dark:border-gray-600">
+          <thead className="bg-gray-200 dark:bg-gray-800">
             <tr>
               {columns.map((col) => (
                 <th
                   key={col.name}
-                  className="border p-2 text-left dark:border-gray-600"
+                  className="border p-2 border-gray-300 dark:border-gray-600 text-left text-gray-900 dark:text-gray-100"
                 >
                   {col.name}
                 </th>
@@ -252,75 +249,91 @@ export default function DataTable({ darkMode = false }) {
             </tr>
           </thead>
           <tbody>
-            {data.map((row, idx) => (
-              <tr key={idx}>
-                {columns.map((col) => (
-                  <td
-                    key={col.name}
-                    className="border p-2 dark:border-gray-600"
-                  >
-                    {row[col.name]}
-                  </td>
-                ))}
+            {data.length > 0 ? (
+              data.map((row, idx) => (
+                <tr key={idx} className="odd:bg-gray-50 even:bg-gray-100 dark:odd:bg-gray-800 dark:even:bg-gray-900">
+                  {columns.map((col) => (
+                    <td key={col.name} className="border p-2 border-gray-300 dark:border-gray-600">
+                      <input
+                        type="text"
+                        value={row[col.name]}
+                        onChange={(e) => {
+                          const newData = [...data];
+                          newData[idx][col.name] = e.target.value;
+                          setData(newData);
+                        }}
+                        className="w-full px-1 py-1 border rounded dark:bg-gray-800 dark:text-gray-100 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500"
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={columns.length} className="p-4 text-center text-gray-500 dark:text-gray-400">
+                  No data yet. Generate rows or import a file.
+                </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
-
-        {/* Row input */}
-        <div className="flex items-center gap-2 mt-2">
-          <input
-            type="number"
-            min="1"
-            value={rowInput}
-            onChange={(e) => setRowInput(e.target.value)}
-            placeholder="Enter rows"
-            className="w-28 px-2 py-1 rounded-lg border border-gray-300 
-              dark:border-gray-600 bg-white dark:bg-gray-800 
-              text-gray-900 dark:text-gray-100 text-sm
-              focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
-          />
-          <button
-            onClick={handleAddRow}
-            className="px-3 py-1 rounded-lg text-sm font-medium
-              bg-gray-200 hover:bg-gray-300 text-gray-900
-              dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100
-              transition-colors duration-200"
-          >
-            Add Row
-          </button>
-        </div>
-
-        {/* Buttons top-right */}
-        <div className="absolute top-4 right-4 flex gap-2">
-          <button
-            onClick={handleAddRow}
-            className="flex items-center gap-1 px-3 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm"
-          >
-            <FiPlus /> Generate Rows
-          </button>
-          <button
-            onClick={handleImportClick}
-            className="flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm"
-          >
-            <FiUpload /> Import
-          </button>
-          <button
-            onClick={handleDownload}
-            className="flex items-center gap-1 px-3 py-1 rounded-lg bg-purple-600 text-white hover:bg-purple-700 text-sm"
-          >
-            <FiDownload /> Download
-          </button>
-        </div>
       </div>
 
-      {/* Preview */}
+      {/* --- TABLE 2: Template Table --- */}
+      <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl shadow p-4 border border-gray-300 dark:border-gray-700">
+        <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">
+          Template Table
+        </h2>
+        <table className="w-full border border-gray-300 dark:border-gray-600">
+          <thead className="bg-gray-200 dark:bg-gray-800">
+            <tr>
+              {columns.map((col) => (
+                <th
+                  key={col.name}
+                  className="border p-2 border-gray-300 dark:border-gray-600 text-left text-gray-900 dark:text-gray-100"
+                >
+                  {col.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {templateData.length > 0 ? (
+              templateData.map((row, idx) => (
+                <tr key={idx} className="odd:bg-gray-50 even:bg-gray-100 dark:odd:bg-gray-800 dark:even:bg-gray-900">
+                  {columns.map((col) => (
+                    <td key={col.name} className="border p-2 border-gray-300 dark:border-gray-600">
+                      <input
+                        type="text"
+                        value={row[col.name]}
+                        onChange={(e) => {
+                          const newData = [...templateData];
+                          newData[idx][col.name] = e.target.value;
+                          setTemplateData(newData);
+                        }}
+                        className="w-full px-1 py-1 border rounded dark:bg-gray-800 dark:text-gray-100 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500"
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={columns.length} className="p-4 text-center text-gray-500 dark:text-gray-400">
+                  No template data yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* --- Preview Section remains unchanged --- */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 border border-gray-200 dark:border-gray-700">
         <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
           Preview
         </h2>
 
-        {/* Controls */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <select
             value={previewSettings.format}
@@ -371,9 +384,7 @@ export default function DataTable({ darkMode = false }) {
             <input
               type="checkbox"
               checked={previewSettings.showLineNumbers}
-              onChange={(e) =>
-                updateSetting("showLineNumbers", e.target.checked)
-              }
+              onChange={(e) => updateSetting("showLineNumbers", e.target.checked)}
             />
             Line Numbers
           </label>
@@ -392,25 +403,23 @@ export default function DataTable({ darkMode = false }) {
           </button>
         </div>
 
-        {/* Preview content */}
         <div
           className="overflow-auto border rounded p-2 max-h-[300px]"
           style={{
             fontFamily:
-              FONT_FAMILIES[previewSettings.fontTheme] ||
-              FONT_FAMILIES.monospace,
+              FONT_FAMILIES[previewSettings.fontTheme] || FONT_FAMILIES.monospace,
             fontSize: previewSettings.fontSize,
             whiteSpace: previewSettings.wrapLines ? "pre-wrap" : "pre",
           }}
         >
-          {data.length > 0 ? (
+          {data.length + templateData.length > 0 ? (
             <pre>
               {previewSettings.showLineNumbers
-                ? formatData(data, previewSettings.format)
+                ? formatData([...templateData, ...data], previewSettings.format)
                     .split("\n")
                     .map((line, idx) => `${idx + 1}: ${line}`)
                     .join("\n")
-                : formatData(data, previewSettings.format)}
+                : formatData([...templateData, ...data], previewSettings.format)}
             </pre>
           ) : (
             <p className="text-sm text-gray-500">No data to preview</p>

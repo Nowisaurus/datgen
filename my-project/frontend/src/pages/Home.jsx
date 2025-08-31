@@ -53,12 +53,15 @@ export default function Home() {
   `;
 
   return (
-    <div className={`${darkMode ? "dark" : ""} min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300`}>
-      {/* Navbar */}
-      <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
+    <div
+  className={`${
+    darkMode ? "dark" : ""
+  } min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300`}
+>
+  {/* Navbar */}
+  <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
 
-      <div className="max-w-[95vw] lg:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 text-gray-800 dark:text-gray-100">
-
+  <div className="max-w-[95vw] lg:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 text-gray-800 dark:text-gray-100">
         {/* Header */}
 <div className="text-center mb-10 md:mb-12">
   <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-snug">
