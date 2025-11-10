@@ -1,20 +1,15 @@
 // src/App.jsx
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import AuthModal from "./components/AuthModal";
 import Dashboard from "./pages/Dashboard";
 
 export default function App() {
-  const [darkMode, setDarkMode] = useState(false);
-  const [authModal, setAuthModal] = useState(null); // "login" | "register" | null
-
-  // Listen to modal open events
-  useEffect(() => {
-    const handler = (e) => setAuthModal(e.detail);
-    document.addEventListener("openAuthModal", handler);
-    return () => document.removeEventListener("openAuthModal", handler);
-  }, []);
+  // The AuthModal component provided listens for a global event
+  // and manages its own visibility. We just need to render it
+  // at the top level so it's always available.
+  // Home and Dashboard manage their own dark mode state internally.
 
   return (
     <div className={`min-h-screen w-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-colors duration-300 flex flex-col`}>
@@ -22,13 +17,13 @@ export default function App() {
       {/* Main content container: responsive, scrollable if needed */}
       <div className="flex-1 w-full max-w-full overflow-x-hidden overflow-y-auto">
         <Routes>
-          <Route path="/" element={<Home darkMode={darkMode} />} />
-          <Route path="/generator" element={<Dashboard darkMode={darkMode} setDarkMode={setDarkMode} />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/generator" element={<Dashboard />} />
         </Routes>
       </div>
 
-      {/* Auth Modal */}
-      {authModal && <AuthModal mode={authModal} onClose={() => setAuthModal(null)} />}
+      {/* Auth Modal - Renders itself when event is fired */}
+      <AuthModal />
     </div>
   );
 }

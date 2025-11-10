@@ -11,6 +11,8 @@
     "build:css": "postcss src/App.css -o dist/App.css"
   },
   "dependencies": {
+    "@paypal/react-paypal-js": "^8.9.1",
+    "@supabase/supabase-js": "^2.80.0",
     "framer-motion": "^12.23.12",
     "js-yaml": "^4.1.0",
     "papaparse": "^5.5.3",
