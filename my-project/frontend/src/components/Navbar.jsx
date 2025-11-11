@@ -1,28 +1,24 @@
 // src/components/Navbar.jsx
 import React from "react";
 import { NavLink } from "react-router-dom";
-import DarkModeToggle from "./DarkModeToggle";
+// We don't need DarkModeToggle, we'll use the props
 
-export default function Navbar() {
+export default function Navbar({ darkMode, setDarkMode }) { // Accept props
   const openModal = (mode) => {
     document.dispatchEvent(new CustomEvent("openAuthModal", { detail: mode }));
   };
 
   // --- STYLE DEFINITIONS ---
-  // Base style for ALL buttons. ONLY has scale-95 on click.
-  // NO 'active:text-blue' or 'active:bg-blue' here.
   const buttonBaseStyle =
     "px-3 py-1.5 rounded-md font-medium transition-all duration-200 border-2 " +
-    "bg-gray-200 text-gray-800 hover:bg-gray-300 " +         // Light mode
-    "dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 " + // Dark mode
+    "bg-gray-200 text-gray-800 hover:bg-gray-300 " +
+    "dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 " +
     "border-transparent " +
-    "active:scale-95"; // ONLY click effect is "press down"
+    "active:scale-95";
 
-  // Active style (for the CURRENT PAGE link ONLY)
   const activePageStyle =
     "bg-blue-600 text-white border-blue-700 scale-105 shadow-lg";
 
-  // Combines styles.
   const navLinkClass = ({ isActive }) =>
     `${buttonBaseStyle} ${isActive ? activePageStyle : ""}`;
     
@@ -41,14 +37,18 @@ export default function Navbar() {
           <NavLink to="/generator" className={navLinkClass}>
             Generator
           </NavLink>
-          {/* These buttons only use buttonBaseStyle */}
+          
           <button onClick={() => openModal("register")} className={buttonBaseStyle}>
             Register
           </button>
           <button onClick={() => openModal("login")} className={buttonBaseStyle}>
             Login
           </button>
-          <DarkModeToggle className={buttonBaseStyle} />
+          
+          {/* Simple dark mode toggle button using the props */}
+          <button onClick={() => setDarkMode(!darkMode)} className={buttonBaseStyle}>
+            {darkMode ? "Light" : "Dark"}
+          </button>
         </nav>
       </div>
     </header>

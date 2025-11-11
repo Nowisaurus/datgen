@@ -1,13 +1,16 @@
-// src/pages/Home.jsx
+// src/pages/Home.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
 
-export default function Home() {
+// Note: No Navbar import here!
+
+// We accept `darkMode` as a prop from App.js
+export default function Home({ darkMode }) {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [selectedFormat, setSelectedFormat] = useState(null);
-  const [darkMode, setDarkMode] = useState(false);
   const navigate = useNavigate();
+
+  // No local `darkMode` state needed
 
   const dataTypes = [
     "Name", "Phone", "Email", "Street Address",
@@ -34,7 +37,7 @@ export default function Home() {
     navigate("/generator", { state: { selectedTypes, selectedFormat } });
   };
 
-  // --- START: STYLE UPDATES ---
+  // --- Styles (unchanged) ---
   const buttonLayout = `
     w-32 sm:w-36 md:w-40 lg:w-44 
     h-12 sm:h-14 md:h-16 lg:h-18
@@ -45,30 +48,27 @@ export default function Home() {
     transition-all duration-200
     flex items-center justify-center
   `;
-
-  // --- UPDATED: This now matches Navbar.jsx ---
-  // NO 'active:text-blue' or 'active:bg-blue' here.
   const buttonBaseStyle = `
     border border-gray-300 dark:border-gray-600
     bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100
     hover:bg-gray-300 dark:hover:bg-gray-600
-    active:scale-95 /* ONLY "press down" effect */
+    active:scale-95
   `;
-
-  // Active Style (The "chosen" look - for toggled buttons)
   const buttonActiveStyle = `
     bg-blue-600 text-white border-blue-700 
     scale-105 shadow-lg
   `;
-  // --- END: STYLE UPDATES ---
+  // --- End Styles ---
 
   return (
+    // This div uses the `darkMode` prop from App.js
     <div
       className={`${
         darkMode ? "dark" : ""
       } min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300`}
     >
-      <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
+      {/* Navbar is REMOVED from here. App.js handles it. */}
+
       <div className="max-w-[95vw] lg:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 text-gray-800 dark:text-gray-100">
         
         <div className="text-center mb-10 md:mb-12">
@@ -76,7 +76,7 @@ export default function Home() {
             Generate Test Data. Easily.
           </h1>
           <p className="mt-4 sm:mt-5 text-gray-600 dark:text-gray-400 text-sm sm:text-base md:text-lg lg:text-xl 
-                  max-w-2xl md:max-w-3xl mx-auto leading-relaxed">
+                        max-w-2xl md:max-w-3xl mx-auto leading-relaxed">
             Select the data types you want and pick your output format.<br />
             Generate structured test data instantly, ready to use in your projects.
           </p>
@@ -124,14 +124,13 @@ export default function Home() {
         </div>
 
         {/* Generate Button */}
-        <div className="mt-8 md:mt-12 text-center">
+        <div className="mt-8 md:mt-12 flex justify-center">
           <button
             onClick={handleGenerate}
             className={`
               px-8 sm:px-10 md:px-12 py-3 sm:py-4 md:py-5 
               rounded-lg text-base sm:text-lg md:text-xl lg:text-2xl 
               font-semibold 
-              ${buttonLayout} 
               ${buttonBaseStyle}
             `}
           >
